@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NFC Tag Reader</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            background: #0f0f1a;
+            color: #e0e0f0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 2.5rem;
+            max-width: 520px;
+            width: 100%;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #a78bfa, #60a5fa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.4rem;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 2rem;
+        }
+
+        #scanBtn {
+            width: 100%;
+            padding: 0.9rem 1.5rem;
+            border: none;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #7c3aed, #2563eb);
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+        }
+
+        #scanBtn:hover {
+            opacity: 0.88;
+            transform: translateY(-1px);
+        }
+
+        #scanBtn:active {
+            transform: translateY(0);
+        }
+
+        #scanBtn:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .pulse-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            position: relative;
+        }
+
+        .pulse-icon::after {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            animation: none;
+        }
+
+        .scanning .pulse-icon::after {
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            100% {
+                transform: scale(1.8);
+                opacity: 0;
+            }
+        }
+
+        #status {
+            margin-top: 1.2rem;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        #status.info {
+            display: block;
+            background: rgba(96, 165, 250, 0.1);
+            color: #93c5fd;
+            border: 1px solid rgba(96, 165, 250, 0.2);
+        }
+
+        #status.success {
+            display: block;
+            background: rgba(52, 211, 153, 0.1);
+            color: #6ee7b7;
+            border: 1px solid rgba(52, 211, 153, 0.2);
+        }
+
+        #status.error {
+            display: block;
+            background: rgba(248, 113, 113, 0.1);
+            color: #fca5a5;
+            border: 1px solid rgba(248, 113, 113, 0.2);
+        }
+
+        #results {
+            margin-top: 1.5rem;
+        }
+
+        .results-header {
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #666;
+            margin-bottom: 0.75rem;
+        }
+
+        .link-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.85rem 1rem;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            margin-bottom: 0.6rem;
+            text-decoration: none;
+            color: #a78bfa;
+            font-size: 0.9rem;
+            word-break: break-all;
+            transition: background 0.2s, border-color 0.2s, transform 0.15s;
+        }
+
+        .link-item:hover {
+            background: rgba(167, 139, 250, 0.1);
+            border-color: rgba(167, 139, 250, 0.3);
+            transform: translateX(3px);
+        }
+
+        .link-icon {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #7c3aed33, #2563eb33);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .no-support {
+            margin-top: 1.2rem;
+            padding: 1rem;
+            border-radius: 12px;
+            background: rgba(251, 191, 36, 0.08);
+            border: 1px solid rgba(251, 191, 36, 0.2);
+            color: #fcd34d;
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>📡 NFC Reader</h1>
+        <p class="subtitle">Tap an NFC tag to discover its URL records</p>
+
+        <button id="scanBtn">
+            <span class="pulse-icon"></span>
+            Start Scanning
+        </button>
+
+        <div id="status"></div>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const btn = document.getElementById('scanBtn');
+        const status = document.getElementById('status');
+        const results = document.getElementById('results');
+
+        let reader = null;
+        let scanning = false;
+
+        function setStatus(msg, type = 'info') {
+            status.textContent = msg;
+            status.className = type;
+        }
+
+        function renderLinks(urls) {
+            if (!urls.length) {
+                results.innerHTML = '';
+                return;
+            }
+            results.innerHTML = `<div class="results-header">🔗 URL Records Found (${urls.length})</div>`;
+            urls.forEach(url => {
+                const a = document.createElement('a');
+                a.href = url;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.className = 'link-item';
+                a.innerHTML = `<span class="link-icon">🌐</span><span>${url}</span>`;
+                results.appendChild(a);
+            });
+        }
+
+        async function startScan() {
+            if (!('NDEFReader' in window)) {
+                const div = document.createElement('div');
+                div.className = 'no-support';
+                div.innerHTML = `
+          <strong>⚠️ Web NFC not supported</strong><br>
+          Web NFC requires <strong>Google Chrome on Android</strong> (version 89+).<br>
+          Desktop browsers and iOS do not support the Web NFC API.
+        `;
+                results.innerHTML = '';
+                results.appendChild(div);
+                return;
+            }
+
+            if (scanning) {
+                // Stop scanning
+                reader = null;
+                scanning = false;
+                btn.textContent = '';
+                btn.innerHTML = '<span class="pulse-icon"></span> Start Scanning';
+                btn.classList.remove('scanning');
+                setStatus('Scanning stopped.', 'info');
+                return;
+            }
+
+            try {
+                reader = new NDEFReader();
+                await reader.scan();
+
+                scanning = true;
+                btn.innerHTML = '<span class="pulse-icon"></span> Scanning… (tap to stop)';
+                btn.classList.add('scanning');
+                setStatus('Ready — bring an NFC tag close to your device.', 'info');
+                results.innerHTML = '';
+
+                reader.addEventListener('reading', ({ message, serialNumber }) => {
+                    const urls = [];
+
+                    for (const record of message.records) {
+                        if (record.recordType === 'url') {
+                            const decoder = new TextDecoder();
+                            urls.push(decoder.decode(record.data));
+                        } else if (record.recordType === 'well-known' && record.mediaType === 'text/uri-list') {
+                            const decoder = new TextDecoder();
+                            urls.push(decoder.decode(record.data));
+                        } else if (record.recordType === 'absolute-url') {
+                            const decoder = new TextDecoder();
+                            urls.push(decoder.decode(record.data));
+                        }
+                    }
+
+                    if (urls.length > 0) {
+                        setStatus(`Tag read! Serial: ${serialNumber || 'N/A'} — ${urls.length} URL record(s) found.`, 'success');
+                        renderLinks(urls);
+                    } else {
+                        setStatus(`Tag scanned (Serial: ${serialNumber || 'N/A'}) but no URL records found.`, 'info');
+                        results.innerHTML = '';
+                    }
+                });
+
+                reader.addEventListener('readingerror', () => {
+                    setStatus('Could not read the NFC tag. Try again.', 'error');
+                });
+
+            } catch (err) {
+                scanning = false;
+                btn.innerHTML = '<span class="pulse-icon"></span> Start Scanning';
+                btn.classList.remove('scanning');
+
+                if (err.name === 'NotAllowedError') {
+                    setStatus('Permission denied. Please allow NFC access when prompted.', 'error');
+                } else {
+                    setStatus(`Error: ${err.message}`, 'error');
+                }
+            }
+        }
+
+        btn.addEventListener('click', startScan);
+    </script>
+</body>
+
+</html>
